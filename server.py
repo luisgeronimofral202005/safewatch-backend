@@ -27,17 +27,25 @@ load_dotenv(ROOT_DIR / '.env')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# MongoDB connection - ATLAS ONLY (no fallback)
+# MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 db_name = os.environ['DB_NAME']
 
-# Force Atlas connection - NO localhost fallback
-client = AsyncIOMotorClient(
-    mongo_url,
-    serverSelectionTimeoutMS=10000,
-    tlsCAFile=certifi.where()
-)
-logger.info(f"MongoDB Atlas client configured - database: {db_name}")
+# Use SSL/TLS only for Atlas connections (mongodb+srv or mongodb.net)
+is_atlas = 'mongodb+srv' in mongo_url or 'mongodb.net' in mongo_url
+if is_atlas:
+    client = AsyncIOMotorClient(
+        mongo_url,
+        serverSelectionTimeoutMS=10000,
+        tlsCAFile=certifi.where()
+    )
+    logger.info(f"MongoDB Atlas client configured - database: {db_name}")
+else:
+    client = AsyncIOMotorClient(
+        mongo_url,
+        serverSelectionTimeoutMS=10000
+    )
+    logger.info(f"MongoDB local client configured - database: {db_name}")
 
 db = client[db_name]
 
@@ -1427,22 +1435,12 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    # FORCE verify Atlas connection - NO FALLBACK
     try:
         await client.admin.command('ping')
-        logger.info("MongoDB Atlas connection VERIFIED - database: %s", db_name)
+        logger.info("MongoDB connection VERIFIED - database: %s", db_name)
     except Exception as e:
-        logger.error("=" * 60)
-        logger.error("MONGODB ATLAS CONNECTION FAILED")
-        logger.error("Error: %s", str(e)[:200])
-        logger.error("")
-        logger.error("Posibles causas:")
-        logger.error("  1. Cluster pausado - Reanudar en https://cloud.mongodb.com")
-        logger.error("  2. IP no permitida - Agregar 0.0.0.0/0 en Network Access")
-        logger.error("  3. Credenciales incorrectas")
-        logger.error("  4. Cluster eliminado")
-        logger.error("=" * 60)
-        raise RuntimeError(f"No se pudo conectar a MongoDB Atlas: {str(e)[:200]}")
+        logger.error("MongoDB connection failed: %s", str(e)[:200])
+        raise RuntimeError(f"No se pudo conectar a MongoDB: {str(e)[:200]}")
     
     # Seed admin if needed
     admin_exists = await db.users.find_one({"role": "admin"})
