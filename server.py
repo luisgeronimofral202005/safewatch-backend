@@ -255,12 +255,12 @@ async def send_emergency_notification(user: Dict, emergency_type: str, location:
         'manual': 'EMERGENCIA MANUAL'
     }
     
-    subject = f"🚨 ALERTA DE EMERGENCIA - {type_names.get(emergency_type, 'EMERGENCIA')}"
+    subject = f" ALERTA DE EMERGENCIA - {type_names.get(emergency_type, 'EMERGENCIA')}"
     
     body = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #dc2626; color: white; padding: 20px; text-align: center;">
-            <h1>⚠️ ALERTA DE EMERGENCIA</h1>
+            <h1> ALERTA DE EMERGENCIA</h1>
         </div>
         <div style="padding: 20px; background: #f9fafb;">
             <h2 style="color: #dc2626;">{type_names.get(emergency_type, 'EMERGENCIA')}</h2>
